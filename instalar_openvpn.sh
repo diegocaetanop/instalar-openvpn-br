@@ -263,7 +263,7 @@ dh dh.pem
 auth SHA1
 tls-auth ta.key 0
 topology subnet
-server 192.168.0.0 255.255.255.0
+server 192.168.0.0 255.255.255.255
 plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so login
 ifconfig-pool-persist ipp.txt" > /etc/openvpn/server/server.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server/server.conf
@@ -381,10 +381,9 @@ server-poll-timeout 4
 reneg-sec 2592000
 sndbuf 393216
 rcvbuf 393216
-max-routes 1000
 remote-cert-tls server
-comp-lzo no
 auth-user-pass
+auth-nocache 
 key-direction 1" > /etc/openvpn/server/client-common.txt
 	# Generates the custom client.ovpn
 	newclient "$CLIENT"
