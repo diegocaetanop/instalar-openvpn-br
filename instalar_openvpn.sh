@@ -140,7 +140,7 @@ if [[ -e /etc/openvpn/server/server.conf ]]; then
 					systemctl disable --now openvpn-iptables.service
 					rm -f /etc/systemd/system/openvpn-iptables.service
 				fi
-				if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '1194' ]]; then
+				if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '11488' ]]; then
 					semanage port -d -t openvpn_port_t -p $PROTOCOL $PORT
 				fi
 				systemctl disable --now openvpn-server@server.service
@@ -196,7 +196,7 @@ else
 	esac
 	echo
 	echo "What port do you want OpenVPN listening to?"
-	read -p "Port: " -e -i 1194 PORT
+	read -p "Port: " -e -i 11488 PORT
 	echo
 	echo "Which DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -260,7 +260,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
-auth SHA1
+auth SHA512
 tls-auth ta.key 0
 topology subnet
 server 192.168.0.0 255.255.255.0
@@ -343,7 +343,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/openvpn-iptables.service
 		systemctl enable --now openvpn-iptables.service
 	fi
 	# If SELinux is enabled and a custom port was selected, we need this
-	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '1194' ]]; then
+	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '11488' ]]; then
 		# Install semanage if not already present
 		if ! hash semanage 2>/dev/null; then
 			if grep -qs "CentOS Linux release 7" "/etc/centos-release"; then
