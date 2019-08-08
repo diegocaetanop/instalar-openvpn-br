@@ -306,7 +306,7 @@ group $GROUPNAME
 persist-key
 persist-tun
 status openvpn-status.log
-verb 2
+verb 3
 crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 	# Enable net.ipv4.ip_forward for the system
 	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/30-openvpn-forward.conf
@@ -371,7 +371,7 @@ nobind
 persist-tun
 cipher AES-128-CBC
 auth SHA1
-verb 2
+verb 3
 mute 3
 push-peer-info
 ping 10
