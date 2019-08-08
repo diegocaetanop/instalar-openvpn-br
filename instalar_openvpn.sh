@@ -306,7 +306,7 @@ group $GROUPNAME
 persist-key
 persist-tun
 status openvpn-status.log
-verb 3
+verb 2
 crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 	# Enable net.ipv4.ip_forward for the system
 	echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/30-openvpn-forward.conf
@@ -365,20 +365,26 @@ WantedBy=multi-user.target" > /etc/systemd/system/openvpn-iptables.service
 	echo "client
 dev tun
 proto $PROTOCOL
-sndbuf 0
-rcvbuf 0
 remote $IP $PORT
-resolv-retry infinite
 nobind
-persist-key
 persist-tun
-remote-cert-tls server
-auth SHA1
 cipher AES-128-CBC
-setenv opt block-outside-dns
-key-direction 1
+auth SHA1
+verb 2
+mute 3
+push-peer-info
+ping 10
+ping-restart 60
+hand-window 70
+server-poll-timeout 4
+reneg-sec 2592000
+sndbuf 393216
+rcvbuf 393216
+remote-cert-tls server
 auth-user-pass
-verb 3" > /etc/openvpn/server/client-common.txt
+auth-nocache
+key-direction 1
+#setenv opt block-outside-dns" > /etc/openvpn/server/client-common.txt
 	# Generates the custom client.ovpn
 	newclient "$CLIENT"
 	echo
