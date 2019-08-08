@@ -6,8 +6,8 @@
 
 
 if grep -qs "Ubuntu 16.04" "/etc/os-release"; then
-	echo 'Ubuntu 16.04 não é mais suportado para o openvpn-install
-Use uma versão anterior à 16.04 ou use estes comandos >>: https://git.io/vpn1604'
+	echo 'Ubuntu 16.04 is no longer supported in the current version of openvpn-install
+Use an older version if Ubuntu 16.04 support is needed: https://git.io/vpn1604'
 	exit
 fi
 
@@ -60,14 +60,14 @@ if [[ -e /etc/openvpn/server/server.conf ]]; then
 	while :
 	do
 	clear
-		echo "Veja OpenVPN já está instalado neste servidor"
+		echo "Looks like OpenVPN is already installed."
 		echo
-		echo "O que você quer fazer?"
-		echo "   1) Adicionar um novo usuário"
-		echo "   2) Remover usuário existe"
-		echo "   3) Remover OpenVPN do servidor"
-		echo "   4) Sair"
-		read -p "Escolha uma das opções [1-4]: " option
+		echo "What do you want to do?"
+		echo "   1) Add a new user"
+		echo "   2) Revoke an existing user"
+		echo "   3) Remove OpenVPN"
+		echo "   4) Exit"
+		read -p "Select an option [1-4]: " option
 		case $option in
 			1) 
 			echo
@@ -140,7 +140,7 @@ if [[ -e /etc/openvpn/server/server.conf ]]; then
 					systemctl disable --now openvpn-iptables.service
 					rm -f /etc/systemd/system/openvpn-iptables.service
 				fi
-				if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '11488' ]]; then
+				if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '1194' ]]; then
 					semanage port -d -t openvpn_port_t -p $PROTOCOL $PORT
 				fi
 				systemctl disable --now openvpn-server@server.service
@@ -175,7 +175,7 @@ else
 	# Autodetect IP address and pre-fill for the user
 	IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 	read -p "IP address: " -e -i $IP IP
-	# If $IP is a private IP address, the server must be behind NAT
+	# If $IP is a private IP address, the server must be behind NAT
 	if echo "$IP" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
 		echo
 		echo "This server is behind NAT. What is the public IPv4 address or hostname?"
@@ -196,7 +196,7 @@ else
 	esac
 	echo
 	echo "What port do you want OpenVPN listening to?"
-	read -p "Port: " -e -i 11488 PORT
+	read -p "Port: " -e -i 1194 PORT
 	echo
 	echo "Which DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -263,8 +263,7 @@ dh dh.pem
 auth SHA1
 tls-auth ta.key 0
 topology subnet
-server 192.168.0.0 255.255.255.255
-plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so login
+server 192.168.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt" > /etc/openvpn/server/server.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server/server.conf
 	# DNS
@@ -344,7 +343,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/openvpn-iptables.service
 		systemctl enable --now openvpn-iptables.service
 	fi
 	# If SELinux is enabled and a custom port was selected, we need this
-	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '11488' ]]; then
+	if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$PORT" != '1194' ]]; then
 		# Install semanage if not already present
 		if ! hash semanage 2>/dev/null; then
 			if grep -qs "CentOS Linux release 7" "/etc/centos-release"; then
@@ -364,27 +363,20 @@ WantedBy=multi-user.target" > /etc/systemd/system/openvpn-iptables.service
 	# client-common.txt is created so we have a template to add further users later
 	echo "client
 dev tun
-dev-type tun
-remote $IP $PORT
 proto $PROTOCOL
+sndbuf 0
+rcvbuf 0
+remote $IP $PORT
+resolv-retry infinite
 nobind
+persist-key
 persist-tun
-cipher AES-128-CBC
-auth SHA1
-verb 3
-mute 3
-push-peer-info
-ping 10
-ping-restart 60
-hand-window 70
-server-poll-timeout 4
-reneg-sec 2592000
-sndbuf 393216
-rcvbuf 393216
 remote-cert-tls server
-auth-user-pass
-auth-nocache 
-key-direction 1" > /etc/openvpn/server/client-common.txt
+auth SHA1
+cipher AES-128-CBC
+setenv opt block-outside-dns
+key-direction 1
+verb 3" > /etc/openvpn/server/client-common.txt
 	# Generates the custom client.ovpn
 	newclient "$CLIENT"
 	echo
