@@ -128,14 +128,14 @@ if [[ -e /etc/openvpn/server/server.conf ]]; then
 				PORT=$(grep '^port ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
 				PROTOCOL=$(grep '^proto ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
 				if pgrep firewalld; then
-					IP=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.8.0.0/20 '"'"'!'"'"' -d 10.8.0.0/20 -j SNAT --to ' | cut -d " " -f 10)
+					IP=$(firewall-cmd --direct --get-rules ipv4 nat POSTROUTING | grep '\-s 10.8.0.0/20 '"'"'!'"'"' -d 10.8.0.0/24 -j SNAT --to ' | cut -d " " -f 10)
 					# Using both permanent and not permanent rules to avoid a firewalld reload.
 					firewall-cmd --remove-port=$PORT/$PROTOCOL
-					firewall-cmd --zone=trusted --remove-source=10.8.0.0/20
+					firewall-cmd --zone=trusted --remove-source=10.8.0.0/24
 					firewall-cmd --permanent --remove-port=$PORT/$PROTOCOL
-					firewall-cmd --permanent --zone=trusted --remove-source=10.8.0.0/20
-					firewall-cmd --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
-					firewall-cmd --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
+					firewall-cmd --permanent --zone=trusted --remove-source=10.8.0.0/24
+					firewall-cmd --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
+					firewall-cmd --permanent --direct --remove-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
 				else
 					systemctl disable --now openvpn-iptables.service
 					rm -f /etc/systemd/system/openvpn-iptables.service
@@ -254,8 +254,8 @@ ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
 	echo "port $PORT
 proto $PROTOCOL
 dev tun
-sndbuf 0
-rcvbuf 0
+sndbuf 393216
+rcvbuf 393216
 ca ca.crt
 cert server.crt
 key server.key
@@ -318,25 +318,25 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 		# We don't use --add-service=openvpn because that would only work with
 		# the default port and protocol.
 		firewall-cmd --add-port=$PORT/$PROTOCOL
-		firewall-cmd --zone=trusted --add-source=10.8.0.0/20
+		firewall-cmd --zone=trusted --add-source=10.8.0.0/24
 		firewall-cmd --permanent --add-port=$PORT/$PROTOCOL
-		firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/20
+		firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/24
 		# Set NAT for the VPN subnet
-		firewall-cmd --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
-		firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
+		firewall-cmd --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
+		firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
 	else
 		# Create a service to set up persistent iptables rules
 		echo "[Unit]
 Before=network.target
 [Service]
 Type=oneshot
-ExecStart=/sbin/iptables -t nat -A POSTROUTING -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
+ExecStart=/sbin/iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
 ExecStart=/sbin/iptables -I INPUT -p $PROTOCOL --dport $PORT -j ACCEPT
-ExecStart=/sbin/iptables -I FORWARD -s 10.8.0.0/20 -j ACCEPT
+ExecStart=/sbin/iptables -I FORWARD -s 10.8.0.0/24 -j ACCEPT
 ExecStart=/sbin/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=/sbin/iptables -t nat -D POSTROUTING -s 10.8.0.0/20 ! -d 10.8.0.0/20 -j SNAT --to $IP
+ExecStop=/sbin/iptables -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
 ExecStop=/sbin/iptables -D INPUT -p $PROTOCOL --dport $PORT -j ACCEPT
-ExecStop=/sbin/iptables -D FORWARD -s 10.8.0.0/20 -j ACCEPT
+ExecStop=/sbin/iptables -D FORWARD -s 10.8.0.0/24 -j ACCEPT
 ExecStop=/sbin/iptables -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
 RemainAfterExit=yes
 [Install]
@@ -392,5 +392,4 @@ key-direction 1
 	echo
 	echo "Your client configuration is available at:" ~/"$CLIENT.ovpn"
 	echo "If you want to add more clients, you simply need to run this script again!"
-	echo "agora instale o apache2 zip e nload"
 fi
